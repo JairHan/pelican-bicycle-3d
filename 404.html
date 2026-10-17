@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>鹈鹕骑单车 · Pelican Post</title>
+  <meta name="description" content="一张会动的落日明信片：一只鹈鹕骑着复古单车，穿过金色海港。可拖拽、可调速、可点灯。Three.js 全程序化 3D。" />
+  <meta name="theme-color" content="#171827" />
+  <meta name="color-scheme" content="dark" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="鹈鹕骑单车 · Pelican Post" />
+  <meta property="og:description" content="一只鹈鹕，一辆复古单车，一整片金色海。拖动看看。" />
+  <meta property="og:image" content="https://jairhan.github.io/pelican-bicycle-3d/assets/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="https://jairhan.github.io/pelican-bicycle-3d/" />
+  <meta name="twitter:image" content="https://jairhan.github.io/pelican-bicycle-3d/assets/og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="https://jairhan.github.io/pelican-bicycle-3d/" />
+  <link rel="apple-touch-icon" href="./assets/og.jpg" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23ff8a5c'/%3E%3Cpath d='M16 38c6-2 9-8 15-8 5 0 7 3 7 6l12-3-10 8 3 7-9-3-7 6-1-8c-5 0-8-2-10-5z' fill='%23fff7ea'/%3E%3Ccircle cx='38' cy='29' r='2.6' fill='%232b2433'/%3E%3Cpath d='M46 33l10-6-7 10z' fill='%23ffc24d'/%3E%3C/svg%3E" />
+  <link rel="preload" href="./fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="./fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="./css/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./js/vendor/three.module.js",
+        "three/addons/": "./js/vendor/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <canvas id="scene" aria-label="一只鹈鹕骑着复古单车停在落日海港的木栈道上。可拖拽旋转、滚轮缩放，使用下方控制面板调节车速与光线。" role="img"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="sun-flare" id="sun-flare" aria-hidden="true"></div>
+  </div>
+
+  <!-- ============================== HUD ============================== -->
+  <div class="hud" id="hud">
+    <header class="brand" aria-label="Pelican Post">
+      <div class="brand-mark">
+        <span class="mark-line"></span>
+        <span class="mark-text">PELICAN&nbsp;POST</span>
+        <span class="mark-line"></span>
+      </div>
+      <h1>
+        <span class="zh">鹈鹕骑单车</span>
+        <span class="en">A Postcard from the Golden Coast</span>
+      </h1>
+      <p class="tagline">海风 · 车铃 · 落日 —— 第三十七号明信片</p>
+    </header>
+
+    <div class="utility" aria-label="快捷工具">
+      <button class="icon-btn" id="btn-sound" type="button" aria-pressed="false" aria-label="开启环境声音" title="声音 (M)">
+        <svg class="ico ico-sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z" fill="currentColor"/><path class="wave" d="M15.5 8.5c1.6 1.9 1.6 5.1 0 7M18 6c3 3.2 3 8.8 0 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="mute" d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-help" type="button" aria-label="帮助与快捷键" title="帮助 (H)">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.6 2.2c-.8.5-1.2 1-1.2 1.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="16.7" r="1" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-fullscreen" type="button" aria-label="全屏" title="全屏 (F)">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="fps-chip" id="fps-chip" aria-hidden="true"><span class="dot"></span><span id="fps-value">--</span> FPS</div>
+
+    <!-- control dock -->
+    <section class="dock" id="dock" aria-label="场景控制">
+      <div class="dock-head">
+        <div>
+          <p class="eyebrow">RIDE CONSOLE</p>
+          <h2>骑行控制台</h2>
+        </div>
+        <button class="sheet-close" id="btn-dock-close" type="button" aria-label="收起控制面板">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="group">
+        <div class="group-label"><span>车速</span><span class="en-label">JOURNEY</span><output id="speed-out" for="speed">8.4 <i>km/h</i></output></div>
+        <div class="range-wrap">
+          <input id="speed" class="range" type="range" min="0" max="3" step="0.01" value="1.83" aria-label="车速，0 到 3，单位公里每小时约为 0 到 14" />
+          <div class="range-ticks" aria-hidden="true"><span>停</span><span>漫游</span><span>疾驰</span></div>
+        </div>
+        <div class="row-actions">
+          <button class="pill-btn" id="btn-pause" type="button" aria-pressed="false">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path class="pause-i" d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path class="play-i" d="M7.5 5.5l11 6.5-11 6.5z" fill="currentColor"/></svg>
+            <span id="pause-label">暂停</span>
+          </button>
+          <button class="pill-btn accent" id="btn-bell" type="button" title="按铃 (R)">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5a5 5 0 0 0-5 5v3.2l-1.4 3.1h12.8L17 12.7V9.5a5 5 0 0 0-5-5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 18.2a2.2 2.2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 2.6v1.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span>按铃</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label"><span>光线</span><span class="en-label">GOLDEN HOUR</span><output id="time-out" for="time">18:42</output></div>
+        <div class="range-wrap">
+          <input id="time" class="range range-time" type="range" min="0" max="1" step="0.005" value="0.56" aria-label="一天中的光线，从正午到夜晚" />
+          <div class="range-ticks time-ticks" aria-hidden="true"><span>正午</span><span>黄金时刻</span><span>夜晚</span></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label"><span>视角</span><span class="en-label">CAMERA</span></div>
+        <div class="segmented" role="group" aria-label="镜头视角">
+          <button type="button" data-cam="orbit" class="seg active" aria-pressed="true">环绕</button>
+          <button type="button" data-cam="cinematic" class="seg" aria-pressed="false">电影</button>
+          <button type="button" data-cam="closeup" class="seg" aria-pressed="false">特写</button>
+        </div>
+        <div class="switch-row">
+          <span class="switch-label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>线框模式</span>
+          <label class="switch">
+            <input type="checkbox" id="wire" />
+            <span class="track"><span class="knob"></span></span>
+            <span class="sr-only">切换线框模式</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="dock-foot">
+        <button class="tool-btn" id="btn-shot" type="button" title="保存明信片 (S)">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          保存明信片
+        </button>
+        <button class="tool-btn" id="btn-reset" type="button">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          回到原点
+        </button>
+      </div>
+    </section>
+
+    <!-- postcard -->
+    <aside class="postcard" aria-label="旅行明信片">
+      <div class="postcard-top">
+        <div class="stamp" aria-hidden="true">
+          <svg viewBox="0 0 80 96">
+            <defs><linearGradient id="stampSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb26b"/><stop offset="1" stop-color="#e4572e"/></linearGradient></defs>
+            <rect x="2" y="2" width="76" height="92" rx="4" fill="#fff6e6" stroke="#c9a97f" stroke-width="1.4" stroke-dasharray="3 2"/>
+            <rect x="8" y="8" width="64" height="80" rx="2" fill="url(#stampSky)"/>
+            <circle cx="55" cy="30" r="9" fill="#ffe9b8" opacity=".95"/>
+            <path d="M8 66h64v22H8z" fill="#0d6c73"/>
+            <path d="M8 64c10-3 18-8 26-8 7 0 11 3 11 6l17-4-13 9 3 8-11-4-10 7-1-9c-8 0-15-2-22-5z" fill="#fff8ec"/>
+            <circle cx="41" cy="59" r="2" fill="#2b2433"/>
+            <path d="M54 62l12-6-8 11z" fill="#ffc24d"/>
+            <path d="M18 78h44" stroke="#e9d7ba" stroke-width="1.2" stroke-dasharray="2 2" opacity=".7"/>
+            <text x="40" y="86" text-anchor="middle" font-family="Georgia,serif" font-size="6" fill="#fff3df" letter-spacing="1">PELICAN POST</text>
+          </svg>
+          <span class="stamp-price">¥ 1.20</span>
+        </div>
+        <div class="postmark" aria-hidden="true">
+          <span class="pm-top">PELICAN POST</span>
+          <strong id="clock">18:42</strong>
+          <span class="pm-bottom">SHANGHAI · 31°14′N</span>
+          <span class="pm-waves"></span>
+        </div>
+      </div>
+      <div class="postcard-body">
+        <p class="pc-kicker">TRIP METER · 本次里程</p>
+        <div class="odo-row"><span class="odo" id="odo">012.408</span><span class="odo-unit">KM</span></div>
+        <p class="pc-quote">“海风把车铃，吹成了黄昏。”</p>
+        <div class="pc-meta">
+          <span><b id="tod-label">黄金时刻</b></span>
+          <span>121°29′E</span>
+          <span class="pc-live"><i></i>LIVE 3D</span>
+        </div>
+      </div>
+      <div class="postcard-foot">
+        <span>Three.js r180</span><span>100% 程序化</span><span>WebGL2</span>
+      </div>
+    </aside>
+
+    <div class="hint" id="hint">
+      <span class="hint-key">拖拽</span> 旋转
+      <span class="hint-sep"></span>
+      <span class="hint-key">滚轮</span> 缩放
+      <span class="hint-sep"></span>
+      <span class="hint-key">空格</span> 暂停
+    </div>
+
+    <button class="dock-toggle" id="btn-dock-toggle" type="button" aria-expanded="false" aria-controls="dock">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>控制</span>
+    </button>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="flash" id="flash" aria-hidden="true"></div>
+  </div>
+
+  <!-- ============================== loader ============================== -->
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <div class="loader-inner">
+      <div class="loader-wheel" aria-hidden="true">
+        <span class="spoke s1"></span><span class="spoke s2"></span><span class="spoke s3"></span><span class="spoke s4"></span>
+        <span class="spoke s5"></span><span class="spoke s6"></span><span class="wheel-hub"></span>
+      </div>
+      <p class="loader-mark">PELICAN&nbsp;POST</p>
+      <h2 class="loader-title">正在把太阳<br />调到海平面</h2>
+      <p class="loader-status" id="loader-status">正在给车链上油…</p>
+      <div class="loader-bar"><span id="loader-bar-fill"></span></div>
+      <p class="loader-hint">一杯茶的工夫，海风就位。</p>
+    </div>
+    <div class="loader-sun" aria-hidden="true"></div>
+    <div class="loader-sea" aria-hidden="true"></div>
+  </div>
+
+  <div class="fatal" id="fatal" hidden>
+    <div class="fatal-card">
+      <p class="eyebrow">SIGNAL LOST</p>
+      <h2>海面起了雾。</h2>
+      <p>这个页面需要支持 WebGL2 的浏览器。请尝试最新版 Chrome、Edge 或 Safari，并确认硬件加速已开启。</p>
+      <pre id="fatal-detail"></pre>
+      <button type="button" onclick="location.reload()">重新加载</button>
+    </div>
+  </div>
+
+  <!-- ============================== help ============================== -->
+  <dialog class="help" id="help" aria-labelledby="help-title">
+    <button class="help-close" id="help-close" type="button" aria-label="关闭帮助">×</button>
+    <p class="eyebrow">FIELD NOTES</p>
+    <h2 id="help-title">这张明信片怎么玩</h2>
+    <div class="help-grid">
+      <div>
+        <h3>操作</h3>
+        <ul class="keys">
+          <li><kbd>拖拽</kbd><span>旋转视角</span></li>
+          <li><kbd>滚轮</kbd><span>推近 / 拉远</span></li>
+          <li><kbd>空格</kbd><span>暂停 / 继续旅程</span></li>
+          <li><kbd>R</kbd><span>按一下车铃</span></li>
+          <li><kbd>C</kbd><span>切换视角</span></li>
+          <li><kbd>W</kbd><span>线框模式</span></li>
+          <li><kbd>S</kbd><span>保存明信片</span></li>
+          <li><kbd>F</kbd><span>全屏</span></li>
+          <li><kbd>M</kbd><span>声音开关</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>幕后</h3>
+        <p>整张明信片没有一张贴图：鹈鹕、单车、木栈道、海浪、星星，全部由代码在运行时生成。海浪是自定义着色器，天空、日落与夜色由一条时间轴连续混合。</p>
+        <p>移动端同样可用，控制面板会收成一张小卡片。若系统开启了「减少动态效果」，镜头与粒子会自动收敛。</p>
+        <p class="help-credit">Crafted with <b>DeepSeek Harness</b><br />Three.js r180 · WebGL2 · 100% 程序化几何</p>
+      </div>
+    </div>
+    <div class="help-foot">
+      <span>PELICAN POST · 第三十七号</span>
+      <span>31°14′N 121°29′E</span>
+    </div>
+  </dialog>
+
+  <noscript><p style="position:fixed;inset:auto 0 0;margin:0;padding:16px;background:#171827;color:#fff;text-align:center;z-index:200">请启用 JavaScript 以查看 3D 明信片。</p></noscript>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
